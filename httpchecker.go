@@ -75,9 +75,6 @@ func (c HTTPChecker) Check() (Result, error) {
 	if c.Client == nil {
 		c.Client = DefaultHTTPClient
 	}
-	if c.UpStatus == 0 {
-		c.UpStatus = http.StatusOK
-	}
 
 	result := Result{Title: c.Name, Endpoint: c.URL, Timestamp: Timestamp()}
 	req, err := http.NewRequest("GET", c.URL, nil)
@@ -153,8 +150,14 @@ func (c HTTPChecker) conclude(result Result) Result {
 // Note that it does not check for degraded response.
 func (c HTTPChecker) checkDown(resp *http.Response) error {
 	// Check status code
-	if resp.StatusCode != c.UpStatus {
-		return fmt.Errorf("response status %s", resp.Status)
+	if c.UpStatus == 0 {
+		if resp.StatusCode < 200 || resp.StatusCode > 400 {
+			return fmt.Errorf("response status %s", resp.Status)
+		}
+	} else {
+		if resp.StatusCode != c.UpStatus {
+			return fmt.Errorf("response status %s", resp.Status)
+		}
 	}
 
 	// Check response body
